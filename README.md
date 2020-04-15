@@ -25,6 +25,45 @@ $ npm install
 
 Copy `config.example.js` to `config.js`， and config it for yourself.
 
+For example, below is a config for provider Tencent:
+
+```js
+module.exports = {
+  tencent: {
+    // resource region
+    region: 'ap-guangzhou',
+    // credentials
+    credentials: {
+      SecretId: '',
+      SecretKey: '',
+    },
+    apigwOptions: {
+      // serviceIds to exclude
+      // before you run the clean script, please add your importance service ids here
+      // so it will not be cleaned
+      exclude: [],
+
+      // serviceIds to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
+    scfOptions: {
+      // scf namespace
+      namespace: 'default',
+
+      // function name to exclude
+      // before you run the clean script, please add your importance function names here
+      // so it will not be cleaned
+      exclude: [],
+
+      // function name to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
+  },
+};
+```
+
 ### Start
 
 ```bash

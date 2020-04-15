@@ -27,50 +27,67 @@ class Scf {
     }
   }
 
-  async removeAll(exclude = [], namespace = 'default') {
-    this.logger.info(`SCF - Start remove all functions`);
-    const { Functions: functionList } = await this.request({
-      Action: 'ListFunctions',
-      Limit: 100,
-    });
-
-    for (let i = 0; i < functionList.length; i++) {
-      const { FunctionName, Namespace } = functionList[i];
-      if (exclude.indexOf(FunctionName) === -1 && Namespace === namespace) {
-        try {
-          await this.removeByName(FunctionName, Namespace);
-        } catch (e) {}
-      } else {
-        this.logger.info(
-          `SCF - Exclude functionName: ${FunctionName}, namespace: ${Namespace}`,
-        );
-      }
+  async removeAll({ exclude = [], include = [], namespace = 'default' }) {
+    if (exclude.length === 0 && include.length === []) {
+      this.logger.info(`APIGW - Nothing to remove`);
+      return;
     }
-    this.logger.info(`SCF - Success remove all functions`);
-  }
 
-  async removeByName(functionName, namespace = 'default') {
-    this.logger.info(`SCF - Deleteing funtion ${functionName}`);
-    const { Triggers: triggerList } = await this.request({
-      Action: 'GetFunction',
-      FunctionName: functionName,
-    });
+    this.logger.info(`SCF - Start remove functions`);
+    if (include.length > 0) {
+      for (let i = 0; i < include.length; i++) {
+        await this.removeByName(include[i], namespace);
+      }
+    } else {
+      const { Functions: functionList } = await this.request({
+        Action: 'ListFunctions',
+        Limit: 100,
+      });
 
-    await this.request({
-      Action: 'DeleteFunction',
-      FunctionName: functionName,
-      Namespace: namespace,
-    });
-
-    if (triggerList) {
-      for (let i = 0; i < triggerList.length; i++) {
-        const trigger = triggerList[i];
-        if (trigger.serviceId) {
-          await this.apigwClient.removeById(trigger.serviceId);
+      for (let i = 0; i < functionList.length; i++) {
+        const { FunctionName, Namespace } = functionList[i];
+        if (exclude.indexOf(FunctionName) === -1 && Namespace === namespace) {
+          await this.removeByName(FunctionName, Namespace);
+        } else {
+          this.logger.info(
+            `SCF - Exclude functionName: ${FunctionName}, namespace: ${Namespace}`,
+          );
         }
       }
     }
-    this.logger.info(`SCF - Removed function ${functionName} successfully`);
+    this.logger.info(`SCF - Success remove functions`);
+  }
+
+  async removeByName(functionName, namespace = 'default') {
+    if (!functionName) {
+      return;
+    }
+    try {
+      this.logger.info(`SCF - Deleteing funtion ${functionName}`);
+      const { Triggers: triggerList } = await this.request({
+        Action: 'GetFunction',
+        FunctionName: functionName,
+        Namespace: namespace,
+      });
+
+      await this.request({
+        Action: 'DeleteFunction',
+        FunctionName: functionName,
+        Namespace: namespace,
+      });
+
+      if (triggerList) {
+        for (let i = 0; i < triggerList.length; i++) {
+          const trigger = triggerList[i];
+          if (trigger.serviceId) {
+            await this.apigwClient.removeById(trigger.serviceId);
+          }
+        }
+      }
+      this.logger.info(`SCF - Removed function ${functionName} successfully`);
+    } catch (e) {
+      this.logger.error(e);
+    }
   }
 }
 

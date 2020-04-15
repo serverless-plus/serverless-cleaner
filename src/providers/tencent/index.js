@@ -5,8 +5,8 @@ const logger = require('../../logger');
 const {
   region,
   credentials,
-  excludeServiceIds,
-  excludeFunctionNames,
+  apigwOptions = {},
+  scfOptions = {},
 } = require('../../../config').tencent;
 
 async function clean() {
@@ -19,7 +19,7 @@ async function clean() {
   ]);
   if (apigwConfirm === true) {
     const api = new Apigw({ credentials, region, logger });
-    await api.removeAll(excludeServiceIds);
+    await api.removeAll(apigwOptions);
   }
 
   const { scfConfirm } = await prompt([
@@ -31,7 +31,7 @@ async function clean() {
   ]);
   if (scfConfirm === true) {
     const scf = new Scf({ credentials, region, logger });
-    await scf.removeAll(excludeFunctionNames);
+    await scf.removeAll(scfOptions);
   }
 }
 

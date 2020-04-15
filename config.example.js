@@ -8,13 +8,28 @@ module.exports = {
       SecretId: '',
       SecretKey: '',
     },
-    // serviceIds to exclude
-    // before you run the clean script, please add your importance service ids here
-    // so it will not be cleaned
-    excludeServiceIds: [],
-    // function name to exclude
-    // before you run the clean script, please add your importance function names here
-    // so it will not be cleaned
-    excludeFunctionNames: [],
+    apigwOptions: {
+      // serviceIds to exclude
+      // before you run the clean script, please add your importance service ids here
+      // so it will not be cleaned
+      exclude: [],
+
+      // serviceIds to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
+    scfOptions: {
+      // scf namespace
+      namespace: 'default',
+
+      // function name to exclude
+      // before you run the clean script, please add your importance function names here
+      // so it will not be cleaned
+      exclude: [],
+
+      // function name to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
   },
 };
