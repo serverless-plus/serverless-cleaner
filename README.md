@@ -10,8 +10,8 @@ Clean tools for cloud baas resources.
   - [x] [SCF](https://console.cloud.tencent.com/scf)
 
 - AWS
-  - [x] [APIGW](https://console.cloud.tencent.com/apigateway)
-  - [x] [SCF](https://console.cloud.tencent.com/scf)
+  - [ ] [APIGW](https://console.aws.amazon.com/apigateway)
+  - [ ] [Lambda](https://console.aws.amazon.com/lambda)
 
 ## Usage
 
