@@ -1,0 +1,30 @@
+{
+  "name": "cloud-baas-clean",
+  "version": "0.1.0",
+  "description": "Clean tools for Tencent Cloud BAAS.",
+  "main": "index.js",
+  "scripts": {
+    "clean": "node src/index.js"
+  },
+  "author": "yugasun",
+  "license": "MIT",
+  "dependencies": {
+    "inquirer": "^7.1.0",
+    "tencent-cloud-sdk": "^0.0.5",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverless-plus/cloud-baas-clean.git"
+  },
+  "keywords": [
+    "clean-tools",
+    "baas",
+    "cloud"
+  ],
+  "bugs": {
+    "url": "https://github.com/serverless-plus/cloud-baas-clean/issues"
+  },
+  "homepage": "https://github.com/serverless-plus/cloud-baas-clean#readme"
+}
