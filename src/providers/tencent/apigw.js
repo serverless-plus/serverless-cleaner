@@ -55,7 +55,6 @@ class Apigw {
       return;
     }
     try {
-      const environment = 'release';
       const { apiIdStatusSet: apiList } = await this.request({
         Action: 'DescribeApisStatus',
         serviceId,
@@ -113,17 +112,21 @@ class Apigw {
       }
 
       // unrelease service
-      try {
-        this.logger.info(
-          `APIGW - Unreleasing service: ${serviceId}, environment: ${environment}`,
-        );
-        await this.request({
-          Action: 'UnReleaseService',
-          serviceId,
-          environmentName: environment,
-          unReleaseDesc: 'Offlined By Serverless Framework',
-        });
-      } catch (e) {}
+      const environmentList = ['release', 'test', 'prepub'];
+      for (let i = 0; i < environmentList.length; i++) {
+        const environment = environmentList[i];
+        try {
+          this.logger.info(
+            `APIGW - Unreleasing service: ${serviceId}, environment: ${environment}`,
+          );
+          await this.request({
+            Action: 'UnReleaseService',
+            serviceId,
+            environmentName: environment,
+            unReleaseDesc: 'Offlined By Serverless Framework',
+          });
+        } catch (e) {}
+      }
 
       // delete service
       this.logger.info(`APIGW - Removing service: ${serviceId}`);
