@@ -1,7 +1,7 @@
 // TODO: change config.example.js to config.js
 module.exports = {
   tencent: {
-    // resource region
+    // resource region, if not config, you can input when running
     region: 'ap-guangzhou',
     // credentials
     credentials: {
@@ -19,9 +19,6 @@ module.exports = {
       include: [],
     },
     scfOptions: {
-      // scf namespace
-      namespace: 'default',
-
       // function name to exclude
       // before you run the clean script, please add your importance function names here
       // so it will not be cleaned
