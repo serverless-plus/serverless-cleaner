@@ -1,6 +1,6 @@
-## cloud-baas-clean
+## Serverless Cleaner
 
-Clean tools for cloud baas resources.
+Clean tools for serverless resources.
 
 ## Support providers
 
