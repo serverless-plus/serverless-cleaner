@@ -117,19 +117,22 @@ class Apigw {
         Action: 'DescribeServiceEnvironmentList',
         serviceId,
       })
+      
       for (let i = 0; i < environmentList.length; i++) {
-        const { environmentName } = environmentList[i];
-        try {
-          this.logger.info(
-            `APIGW - Unreleasing service: ${serviceId}, environment: ${environmentName}`,
-          );
-          await this.request({
-            Action: 'UnReleaseService',
-            serviceId,
-            environmentName,
-            unReleaseDesc: 'Offlined By Serverless Framework',
-          });
-        } catch (e) {}
+        const { environmentName, status } = environmentList[i];
+        if (status === 1) {
+          try {
+            this.logger.info(
+              `APIGW - Unreleasing service: ${serviceId}, environment: ${environmentName}`,
+            );
+            await this.request({
+              Action: 'UnReleaseService',
+              serviceId,
+              environmentName,
+              unReleaseDesc: 'Offlined By Serverless Framework',
+            });
+          } catch (e) {}
+        }
       }
 
       // delete service

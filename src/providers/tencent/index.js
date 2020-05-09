@@ -40,21 +40,23 @@ async function clean() {
     await api.removeAll(apigwOptions);
   }
 
-  const { scfConfirm, namespace } = await prompt([
+  const { scfConfirm } = await prompt([
     {
       type: 'confirm',
       name: 'scfConfirm',
       message: 'Are you sure to delete all exist SCF?',
     },
-    {
-      type: 'input',
-      name: 'namespace',
-      message: 'Please input scf namespace you want to delete?',
-      default: 'default',
-    },
   ]);
-
   if (scfConfirm === true) {
+
+    const { namespace } = await prompt([
+      {
+        type: 'input',
+        name: 'namespace',
+        message: 'Please input scf namespace you want to delete?',
+        default: 'default',
+      },
+    ]);
     const scf = new Scf({ credentials, region, logger });
     await scf.removeAll(scfOptions, namespace);
   }
