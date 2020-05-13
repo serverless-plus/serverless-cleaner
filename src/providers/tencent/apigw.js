@@ -50,6 +50,64 @@ class Apigw {
     this.logger.info(`APIGW - Success remove APIGW services`);
   }
 
+  async removeApiUsagePlan(serviceId, apiId) {
+    const { usagePlanList = [] } = await this.request({
+      Action: 'DescribeApiUsagePlan',
+      serviceId,
+      apiIds: [apiId],
+    });
+
+    for (let i = 0; i < usagePlanList.length; i++) {
+      const currentUsagePlan = usagePlanList[i];
+      this.logger.info(
+        `APIGW - Removing api usage plan: ${currentUsagePlan.usagePlanId}`,
+      );
+      const { secretIdList = [] } = await this.request({
+        Action: 'DescribeUsagePlanSecretIds',
+        usagePlanId: currentUsagePlan.usagePlanId,
+        offset: 0,
+        limit: 100,
+      });
+
+      const secretIds = secretIdList.map((item) => item.secretId);
+
+      if (secretIds && secretIds.length > 0) {
+        await this.request({
+          Action: 'UnBindSecretIds',
+          secretIds: secretIds,
+          usagePlanId: currentUsagePlan.usagePlanId,
+        });
+        // delelet all created api key
+        for (let sIdx = 0; sIdx < secretIds.length; sIdx++) {
+          const secretId = secretIds[sIdx];
+          await this.request({
+            Action: 'DisableApiKey',
+            secretId,
+          });
+          await this.request({
+            Action: 'DeleteApiKey',
+            secretId,
+          });
+        }
+      }
+
+      // unbind environment
+      await this.request({
+        Action: 'UnBindEnvironment',
+        serviceId,
+        usagePlanIds: [currentUsagePlan.usagePlanId],
+        environment: currentUsagePlan.environment,
+        bindType: 'API',
+        apiIds: [apiId],
+      });
+
+      await this.request({
+        Action: 'DeleteUsagePlan',
+        usagePlanId: currentUsagePlan.usagePlanId,
+      });
+    }
+  }
+
   async removeById(serviceId) {
     if (!serviceId) {
       return;
@@ -63,45 +121,8 @@ class Apigw {
       // remove all apis
       for (let i = 0; i < apiList.length; i++) {
         const curApi = apiList[i];
-        // remove usage plan
-        if (curApi.usagePlan) {
-          // 1.1 unbind secrete ids
-          const { secrets } = curApi.usagePlan;
-          if (secrets && secrets.secretIds) {
-            await this.request({
-              Action: 'UnBindSecretIds',
-              secretIds: secrets.secretIds,
-              usagePlanId: curApi.usagePlan.id,
-            });
-            // delelet all created api key
-            for (let sIdx = 0; sIdx < secrets.secretIds.length; sIdx++) {
-              const secretId = secrets.secretIds[sIdx];
-              await this.request({
-                Action: 'DisableApiKey',
-                secretId,
-              });
-              await this.request({
-                Action: 'DeleteApiKey',
-                secretId,
-              });
-            }
-          }
 
-          // unbind environment
-          await this.request({
-            Action: 'UnBindEnvironment',
-            serviceId,
-            usagePlanIds: [curApi.usagePlan.id],
-            environment,
-            bindType: curApi.bindType,
-            apiIds: [curApi.apiId],
-          });
-
-          await this.request({
-            Action: 'DeleteUsagePlan',
-            usagePlanId: curApi.usagePlan.id,
-          });
-        }
+        await this.removeApiUsagePlan(serviceId, curApi.apiId);
 
         this.logger.info(`APIGW - Removing api: ${curApi.apiId}`);
         await this.request({
@@ -116,8 +137,8 @@ class Apigw {
       const { environmentList } = await this.request({
         Action: 'DescribeServiceEnvironmentList',
         serviceId,
-      })
-      
+      });
+
       for (let i = 0; i < environmentList.length; i++) {
         const { environmentName, status } = environmentList[i];
         if (status === 1) {
