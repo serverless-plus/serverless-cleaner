@@ -42,6 +42,7 @@ class Scf {
       const { Functions: functionList } = await this.request({
         Action: 'ListFunctions',
         Limit: 100,
+        Namespace: namespace
       });
 
       for (let i = 0; i < functionList.length; i++) {

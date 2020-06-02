@@ -57,8 +57,9 @@ async function clean() {
         default: 'default',
       },
     ]);
+    scfOptions.namespace = namespace
     const scf = new Scf({ credentials, region, logger });
-    await scf.removeAll(scfOptions, namespace);
+    await scf.removeAll(scfOptions);
   }
 }
 
