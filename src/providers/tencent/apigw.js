@@ -22,7 +22,7 @@ class Apigw {
   }
 
   async removeAll({ exclude = [], include = [] }) {
-    if (exclude.length === 0 && include.length === []) {
+    if (exclude.length === 0 && include.length === 0) {
       this.logger.info(`APIGW - Nothing to remove`);
       return;
     }

@@ -28,7 +28,7 @@ class Scf {
   }
 
   async removeAll({ exclude = [], include = [], namespace = 'default' }) {
-    if (exclude.length === 0 && include.length === []) {
+    if (exclude.length === 0 && include.length === 0) {
       this.logger.info(`APIGW - Nothing to remove`);
       return;
     }
