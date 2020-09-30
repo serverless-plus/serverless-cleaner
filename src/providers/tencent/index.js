@@ -1,12 +1,14 @@
 const { prompt } = require('inquirer');
 const Apigw = require('./apigw');
 const Scf = require('./scf');
+const Layer = require('./layer');
 const logger = require('../../logger');
 let {
   region,
   credentials,
   apigwOptions = {},
   scfOptions = {},
+  layerOptions = {},
 } = require('../../../config').tencent;
 
 async function clean() {
@@ -33,6 +35,7 @@ async function clean() {
       type: 'confirm',
       name: 'apigwConfirm',
       message: 'Are you sure to delete all exist APIGW?',
+      default: true,
     },
   ]);
   if (apigwConfirm === true) {
@@ -45,10 +48,10 @@ async function clean() {
       type: 'confirm',
       name: 'scfConfirm',
       message: 'Are you sure to delete all exist SCF?',
+      default: true,
     },
   ]);
   if (scfConfirm === true) {
-
     const { namespace } = await prompt([
       {
         type: 'input',
@@ -57,9 +60,22 @@ async function clean() {
         default: 'default',
       },
     ]);
-    scfOptions.namespace = namespace
+    scfOptions.namespace = namespace;
     const scf = new Scf({ credentials, region, logger });
     await scf.removeAll(scfOptions);
+  }
+
+  const { layerConfirm } = await prompt([
+    {
+      type: 'confirm',
+      name: 'layerConfirm',
+      message: 'Are you sure to delete all exist Layers?',
+      default: true,
+    },
+  ]);
+  if (layerConfirm === true) {
+    const layer = new Layer({ credentials, region, logger });
+    await layer.removeAll(layerOptions);
   }
 }
 

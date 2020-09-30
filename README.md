@@ -6,8 +6,9 @@ Clean tools for serverless resources.
 
 - Tencent
 
-  - [x] [APIGW](https://console.cloud.tencent.com/apigateway)
-  - [x] [SCF](https://console.cloud.tencent.com/scf)
+  - [x] [Apigateway](https://console.cloud.tencent.com/apigateway)
+  - [x] [Scf](https://console.cloud.tencent.com/scf)
+  - [x] [Layer](https://console.cloud.tencent.com/scf/layer)
 
 - AWS
   - [ ] [APIGW](https://console.aws.amazon.com/apigateway)
@@ -54,6 +55,16 @@ module.exports = {
       exclude: [],
 
       // function name to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
+    layerOptions: {
+      // layer name to exclude
+      // before you run the clean script, please add your importance function names here
+      // so it will not be cleaned
+      exclude: [],
+
+      // layer name to include, priority higher than exclude
       // if include set, exclude will be ignored
       include: [],
     },

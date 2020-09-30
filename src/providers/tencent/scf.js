@@ -1,29 +1,30 @@
-const { scf } = require('tencent-cloud-sdk');
+const { Capi } = require('@tencent-sdk/capi');
+const { request } = require('./request');
 const Apigw = require('./apigw');
 
-class Scf {
+class Cleaner {
   constructor({ credentials = {}, region, logger = console }) {
     this.region = region || 'ap-guangzhou';
     this.credentials = credentials;
-    this.scfClient = new scf(this.credentials);
-    this.apigwClient = new Apigw(this.credentials, this.region);
     this.logger = logger;
+    this.capi = new Capi({
+      ...this.credentials,
+      ServiceType: 'scf',
+      Version: '2018-04-16',
+      Region: this.region,
+      isV3: true,
+      debug: false,
+    });
+    this.apigw = new Apigw(this.credentials, this.region);
   }
 
   async request(inputs) {
-    inputs.Region = this.region;
-    inputs.Version = '2018-04-16';
-    const { Response } = await this.scfClient.request(inputs);
-
-    if (Response.Error) {
-      this.logger.error(
-        `Request API ${inputs.Action} failed: ${Response.Error.Message}`,
-      );
-      throw new Error(
-        `Request API ${inputs.Action} failed: ${Response.Error.Message}`,
-      );
-    } else {
+    try {
+      const Response = await request(this.capi, inputs);
       return Response;
+    } catch (e) {
+      this.logger.error(`Request API ${inputs.Action} failed: ${e.message}`);
+      throw new Error(`Request API ${inputs.Action} failed: ${e.message}`);
     }
   }
 
@@ -39,14 +40,14 @@ class Scf {
         await this.removeByName(include[i], namespace);
       }
     } else {
-      const { Functions: functionList } = await this.request({
+      const { Functions } = await this.request({
         Action: 'ListFunctions',
         Limit: 100,
-        Namespace: namespace
+        Namespace: namespace,
       });
 
-      for (let i = 0; i < functionList.length; i++) {
-        const { FunctionName, Namespace } = functionList[i];
+      for (let i = 0; i < Functions.length; i++) {
+        const { FunctionName, Namespace } = Functions[i];
         if (exclude.indexOf(FunctionName) === -1 && Namespace === namespace) {
           await this.removeByName(FunctionName, Namespace);
         } else {
@@ -65,7 +66,7 @@ class Scf {
     }
     try {
       this.logger.info(`SCF - Deleteing funtion ${functionName}`);
-      const { Triggers: triggerList } = await this.request({
+      const { Triggers } = await this.request({
         Action: 'GetFunction',
         FunctionName: functionName,
         Namespace: namespace,
@@ -77,11 +78,11 @@ class Scf {
         Namespace: namespace,
       });
 
-      if (triggerList) {
-        for (let i = 0; i < triggerList.length; i++) {
-          const trigger = triggerList[i];
-          if (trigger.serviceId) {
-            await this.apigwClient.removeById(trigger.serviceId);
+      if (Triggers && Triggers.length > 0) {
+        for (let i = 0; i < Triggers.length; i++) {
+          const trigger = Triggers[i];
+          if (trigger.ServiceId) {
+            await this.apigw.removeById(trigger.serviceId);
           }
         }
       }
@@ -92,4 +93,4 @@ class Scf {
   }
 }
 
-module.exports = Scf;
+module.exports = Cleaner;

@@ -28,5 +28,15 @@ module.exports = {
       // if include set, exclude will be ignored
       include: [],
     },
+    layerOptions: {
+      // layer name to exclude
+      // before you run the clean script, please add your importance function names here
+      // so it will not be cleaned
+      exclude: [],
+
+      // layer name to include, priority higher than exclude
+      // if include set, exclude will be ignored
+      include: [],
+    },
   },
 };

@@ -9,8 +9,8 @@
   "author": "yugasun",
   "license": "MIT",
   "dependencies": {
+    "@tencent-sdk/capi": "^1.1.4",
     "inquirer": "^7.1.0",
-    "tencent-cloud-sdk": "^0.0.5",
     "winston": "^3.2.1"
   },
   "devDependencies": {},

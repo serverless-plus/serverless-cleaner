@@ -1,23 +1,27 @@
-const { apigw } = require('tencent-cloud-sdk');
+const { Capi } = require('@tencent-sdk/capi');
+const { request } = require('./request');
 
-class Apigw {
+class Cleaner {
   constructor({ credentials = {}, region, logger = console }) {
     this.region = region || 'ap-guangzhou';
     this.credentials = credentials;
-    this.apigwClient = new apigw(this.credentials);
     this.logger = logger;
+    this.capi = new Capi({
+      ...this.credentials,
+      ServiceType: 'apigateway',
+      Version: '2018-08-08',
+      Region: this.region,
+      isV3: true,
+      debug: false,
+    });
   }
 
   async request(inputs) {
-    inputs.Region = this.region;
-    const result = await this.apigwClient.request(inputs);
-    if (result.code != 0) {
-      this.logger.error(
-        `Request API ${inputs.Action} failed: ${result.message}`,
-      );
-      throw new Error(`Request API ${inputs.Action} failed: ${result.message}`);
-    } else {
-      return result;
+    try {
+      const Response = await request(this.capi, inputs);
+      return Response;
+    } catch (e) {
+      this.logger.error(`Request API ${inputs.Action} failed: ${e.message}`);
     }
   }
 
@@ -33,60 +37,57 @@ class Apigw {
         await this.removeById(include[i]);
       }
     } else {
-      const { serviceStatusSet: serviceList } = await this.request({
+      const {
+        Result: { ServiceSet },
+      } = await this.request({
         Action: 'DescribeServicesStatus',
-        limit: 100,
+        Limit: 100,
       });
 
-      for (let i = 0; i < serviceList.length; i++) {
-        const { serviceId } = serviceList[i];
-        if (exclude.indexOf(serviceId) === -1) {
-          await this.removeById(serviceId);
+      for (let i = 0; i < ServiceSet.length; i++) {
+        const { ServiceId } = ServiceSet[i];
+        if (exclude.indexOf(ServiceId) === -1) {
+          await this.removeById(ServiceId);
         } else {
-          this.logger.info(`APIGW - Exclude serviceId: ${serviceId}`);
+          this.logger.info(`APIGW - Exclude serviceId: ${ServiceId}`);
         }
       }
     }
     this.logger.info(`APIGW - Success remove APIGW services`);
   }
 
-  async removeApiUsagePlan(serviceId, apiId) {
-    const { usagePlanList = [] } = await this.request({
+  async removeApiUsagePlan(ServiceId) {
+    const {
+      Result: { ApiUsagePlanList },
+    } = await this.request({
       Action: 'DescribeApiUsagePlan',
-      serviceId,
-      apiIds: [apiId],
+      ServiceId,
     });
 
-    for (let i = 0; i < usagePlanList.length; i++) {
-      const currentUsagePlan = usagePlanList[i];
-      this.logger.info(
-        `APIGW - Removing api usage plan: ${currentUsagePlan.usagePlanId}`,
-      );
-      const { secretIdList = [] } = await this.request({
+    for (let i = 0; i < ApiUsagePlanList.length; i++) {
+      const { UsagePlanId, Environment, ApiId } = ApiUsagePlanList[i];
+      this.logger.info(`APIGW - Removing api usage plan: ${UsagePlanId}`);
+      const {
+        Result: { AccessKeyList },
+      } = await this.request({
         Action: 'DescribeUsagePlanSecretIds',
-        usagePlanId: currentUsagePlan.usagePlanId,
-        offset: 0,
-        limit: 100,
+        UsagePlanId: UsagePlanId,
+        Limit: 100,
       });
 
-      const secretIds = secretIdList.map((item) => item.secretId);
+      const AccessKeyIds = AccessKeyList.map((item) => item.SecretId);
 
-      if (secretIds && secretIds.length > 0) {
+      if (AccessKeyIds && AccessKeyIds.length > 0) {
         await this.request({
           Action: 'UnBindSecretIds',
-          secretIds: secretIds,
-          usagePlanId: currentUsagePlan.usagePlanId,
+          UsagePlanId: UsagePlanId,
+          AccessKeyIds: AccessKeyIds,
         });
         // delelet all created api key
-        for (let sIdx = 0; sIdx < secretIds.length; sIdx++) {
-          const secretId = secretIds[sIdx];
+        for (let sIdx = 0; sIdx < AccessKeyIds.length; sIdx++) {
           await this.request({
             Action: 'DisableApiKey',
-            secretId,
-          });
-          await this.request({
-            Action: 'DeleteApiKey',
-            secretId,
+            AccessKeyId: AccessKeyIds[sIdx],
           });
         }
       }
@@ -94,73 +95,77 @@ class Apigw {
       // unbind environment
       await this.request({
         Action: 'UnBindEnvironment',
-        serviceId,
-        usagePlanIds: [currentUsagePlan.usagePlanId],
-        environment: currentUsagePlan.environment,
-        bindType: 'API',
-        apiIds: [apiId],
+        ServiceId,
+        UsagePlanIds: [UsagePlanId],
+        Environment: Environment,
+        BindType: 'API',
+        ApiIds: [ApiId],
       });
 
       await this.request({
         Action: 'DeleteUsagePlan',
-        usagePlanId: currentUsagePlan.usagePlanId,
+        UsagePlanId: UsagePlanId,
       });
     }
   }
 
-  async removeById(serviceId) {
-    if (!serviceId) {
+  async removeById(ServiceId) {
+    if (!ServiceId) {
       return;
     }
     try {
-      const { apiIdStatusSet: apiList } = await this.request({
+      const {
+        Result: { ApiIdStatusSet },
+      } = await this.request({
         Action: 'DescribeApisStatus',
-        serviceId,
+        ServiceId,
+        Limit: 100,
       });
 
       // remove all apis
-      for (let i = 0; i < apiList.length; i++) {
-        const curApi = apiList[i];
+      for (let i = 0; i < ApiIdStatusSet.length; i++) {
+        const { ApiId } = ApiIdStatusSet[i];
 
-        await this.removeApiUsagePlan(serviceId, curApi.apiId);
+        await this.removeApiUsagePlan(ServiceId);
 
-        this.logger.info(`APIGW - Removing api: ${curApi.apiId}`);
+        this.logger.info(`APIGW - Removing api: ${ApiId}`);
         await this.request({
           Action: 'DeleteApi',
-          apiId: curApi.apiId,
-          serviceId,
+          ApiId,
+          ServiceId,
         });
       }
 
       // unrelease service
       // get environment list
-      const { environmentList } = await this.request({
+      const {
+        Result: { EnvironmentList },
+      } = await this.request({
         Action: 'DescribeServiceEnvironmentList',
-        serviceId,
+        ServiceId,
       });
 
-      for (let i = 0; i < environmentList.length; i++) {
-        const { environmentName, status } = environmentList[i];
-        if (status === 1) {
+      for (let i = 0; i < EnvironmentList.length; i++) {
+        const { EnvironmentName, Status } = EnvironmentList[i];
+        if (Status === 1) {
           try {
             this.logger.info(
-              `APIGW - Unreleasing service: ${serviceId}, environment: ${environmentName}`,
+              `APIGW - Unreleasing service: ${ServiceId}, environment: ${EnvironmentName}`,
             );
             await this.request({
               Action: 'UnReleaseService',
-              serviceId,
-              environmentName,
-              unReleaseDesc: 'Offlined By Serverless Framework',
+              ServiceId,
+              EnvironmentName,
             });
           } catch (e) {}
         }
       }
 
       // delete service
-      this.logger.info(`APIGW - Removing service: ${serviceId}`);
+      this.logger.info(`APIGW - Removing service: ${ServiceId}`);
       await this.request({
         Action: 'DeleteService',
-        serviceId,
+        ServiceId,
       });
     } catch (e) {
       this.logger.error(e);
@@ -168,4 +173,4 @@ class Apigw {
   }
 }
 
-module.exports = Apigw;
+module.exports = Cleaner;
